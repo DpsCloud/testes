@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gerenciamento de Grupos WhatsApp</title>
+    <style>
+      html, body, #root { height: 100%; margin: 0; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: #eef2ff; }
+    </style>
+    <!-- React e ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Babel para transpilar JSX no navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script>
+      (async function () {
+        try {
+          const res = await fetch('./Gerenciagroup.js');
+          let source = await res.text();
+
+          // Remove BOM e export default
+          source = source.replace(/^\uFEFF/, '');
+          source = source.replace(/export\s+default\s+App;?\s*$/m, '');
+
+          // Foca apenas no bloco do componente App
+          let startIdx = source.indexOf('const App');
+          if (startIdx === -1) startIdx = source.indexOf('function App');
+          if (startIdx === -1) throw new Error('Bloco do componente App não encontrado');
+          const appCode = source.slice(startIdx);
+
+          // Injeta hooks do React no escopo local e exporta App para window
+          const inject = "const { useState, useEffect } = React;\n";
+          const extended = inject + appCode + "\n;try { window.App = App; } catch (e) {}";
+
+          // Transpila JSX e sintaxe moderna
+          const { code } = Babel.transform(extended, { presets: ['env', 'react'] });
+
+          // Executa o código transpilado
+          // eslint-disable-next-line no-eval
+          eval(code);
+
+          // Monta o App no #root
+          const AppComp = window.App;
+          if (!AppComp) throw new Error('App não foi definido');
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(React.createElement(AppComp));
+        } catch (e) {
+          console.error('Falha ao carregar o app:', e);
+          const el = document.getElementById('root');
+          el.innerHTML = '<div style="padding:16px;color:#b91c1c;background:#fee2e2;border-radius:8px;">Erro ao inicializar o app. Verifique o console.</div>';
+        }
+      })();
+    </script>
+  </body>
+</html>
